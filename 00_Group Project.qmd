@@ -1,0 +1,13 @@
+---
+title: "00_Group Project"
+format: html
+editor: visual
+---
+
+## Load Datasets
+
+### Loading functions
+
+```{r}
+load(file='/home/projects/22140/exam_data/exam_functions.Rdata')
+```
