@@ -4,10 +4,33 @@ format: html
 editor: visual
 ---
 
-## Load Datasets
+## Preparation
 
 ### Loading functions
 
 ```{r}
 load(file='/home/projects/22140/exam_data/exam_functions.Rdata')
+```
+
+### Load dataset 1
+
+```{r}
+study_id_1 <- "GSE144580"
+isoform_counts_1 <- loadIsoformCountMatrix(study_id_1)
+gene_counts_1 <- extractGeneCountMatrixFromIsoCounts(isoform_counts_1)
+```
+
+### Load dataset 2
+
+```{r}
+study_id_2 <- "GSE132343"
+isoform_counts_2 <- loadIsoformCountMatrix(study_id_2)
+gene_counts_2 <- extractGeneCountMatrixFromIsoCounts(isoform_counts_2)
+```
+
+### Remove conditions
+
+```{r}
+samples_to_keep <- c("GSM3860375","GSM3860376","GSM3860377","GSM3860378","GSM3860379","GSM3860380")
+gene_counts_2 <- gene_counts_2[, samples_to_keep]
 ```
