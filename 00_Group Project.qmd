@@ -4,15 +4,27 @@ format: html
 editor: visual
 ---
 
-## Preparation
+### Please notice: dataset1 is GSE144580 (E2 v.s. Vehicle), dataset2 is GSE132343 (NB73 v.s. Vehicle)
 
-### Loading functions
+# Preparation
+
+## Load functions
 
 ```{r}
 load(file='/home/projects/22140/exam_data/exam_functions.Rdata')
 ```
 
-### Load dataset 1
+## Load libraries
+
+```{r}
+library(BiocManager)
+library(GEOquery)
+library(tidyverse)
+```
+
+## Load datasets
+
+### Dataset1
 
 ```{r}
 study_id_1 <- "GSE144580"
@@ -20,7 +32,12 @@ isoform_counts_1 <- loadIsoformCountMatrix(study_id_1)
 gene_counts_1 <- extractGeneCountMatrixFromIsoCounts(isoform_counts_1)
 ```
 
-### Load dataset 2
+```{r}
+gse1 <- getGEO(study_id_1, GSEMatrix = TRUE)[[2]]  
+meta1 <- as.data.frame(pData(gse1))
+```
+
+### Dataset 2
 
 ```{r}
 study_id_2 <- "GSE132343"
@@ -28,9 +45,104 @@ isoform_counts_2 <- loadIsoformCountMatrix(study_id_2)
 gene_counts_2 <- extractGeneCountMatrixFromIsoCounts(isoform_counts_2)
 ```
 
+```{r}
+gse2 <- getGEO(study_id_2, GSEMatrix = TRUE)[[1]]
+meta2 <- as.data.frame(pData(gse2))
+```
+
+## Data Cleaning
+
 ### Remove conditions
 
 ```{r}
 samples_to_keep <- c("GSM3860375","GSM3860376","GSM3860377","GSM3860378","GSM3860379","GSM3860380")
 gene_counts_2 <- gene_counts_2[, samples_to_keep]
+isoform_counts_2 <- isoform_counts_2[, samples_to_keep]
+
+```
+
+```{r}
+meta2 <- meta2[samples_to_keep, ]
+all(rownames(meta2) == colnames(gene_counts_2))
+```
+
+### Filter information from metadata
+
+```{r}
+meta1_clean <- meta1 %>% 
+  transmute(
+    cell_line = characteristics_ch1,
+    treatment = characteristics_ch1.2) %>% 
+  mutate(
+    cell_line = str_remove(cell_line, "^cell line: "),
+    treatment = str_remove(str_trim(treatment), "^treatment: "),
+    treatment = case_when(
+      str_detect(treatment, "^E2") ~ "E2",
+      str_detect(treatment, "^vehicle") ~ "Vehicle",
+  TRUE ~ treatment
+  )
+  )
+```
+
+```{r}
+meta2_clean <- meta2 %>% 
+  transmute(
+    cell_line = source_name_ch1,
+    treatment = characteristics_ch1.1) %>% 
+  mutate(
+    cell_line = str_remove(cell_line, "^cell line: *| cells$"),
+    treatment = str_remove(str_trim(treatment), "^treatment: "),
+    treatment = case_when(
+      str_detect(treatment, "NB73") ~ "NB73",
+      str_detect(treatment, "Vehicle") ~ "Vehicle",
+  TRUE ~ treatment
+  )
+  )
+```
+
+# Dataset1
+
+## Differential Gene Expression
+
+### Load libraries
+
+```{r}
+library(DESeq2) 
+library(fgsea) 
+library(msigdbr)
+```
+
+## Create colData
+
+```{r}
+colData1 <- meta1_clean
+colData1$treatment <- factor(colData1$treatment, levels = c("Vehicle", "E2"))
+all(rownames(colData1) == colnames(gene_counts_1))
+```
+
+## DESeq2
+
+### Create DESeqDS object
+
+```{r}
+dds1 <- DESeqDataSetFromMatrix(
+  countData = gene_counts_1,
+  colData = colData1,
+  design = ~ treatment
+)
+dds1
+```
+
+### PCA
+
+```{r}
+plotPCA(rlog(dds1), intgroup=c("treatment"))
+```
+
+### Test for DE
+
+```{r}
+dds1 <- DESeq(dds1)
+res1 <- results(dds1)
+res1
 ```
