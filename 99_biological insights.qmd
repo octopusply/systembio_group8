@@ -1,0 +1,25 @@
+---
+title: "99_biological insights"
+format: html
+editor: visual
+---
+
+# Dataset1
+
+## DESeq2
+
+### FSC
+
+All of these pathways are related to **ribosome biogenesis and RNA metabolism/processing**, including:
+
+-   **rRNA and tRNA metabolism/processing** (`GOBP_RRNA_METABOLIC_PROCESS`, `GOBP_TRNA_METABOLIC_PROCESS`, `GOBP_MATURATION_OF_SSU_RRNA`, `GOBP_TRNA_PROCESSING`)
+
+-   **Ribosomal subunit biogenesis** (`GOBP_RIBOSOMAL_LARGE_SUBUNIT_BIOGENESIS`, `GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS`)
+
+-   **Ribonucleoprotein complex assembly** (`GOBP_RIBONUCLEOPROTEIN_COMPLEX_SUBUNIT_ORGANIZATION`)
+
+-   **ncRNA processing and RNA localization** (`GOBP_NCRNA_PROCESSING`, `GOBP_RNA_LOCALIZATION`)
+
+    The top GSEA hits suggest that the treatment primarily affects **ribosome biogenesis and RNA processing (translation and RNA metabolism) programs**.
+
+## DEXSeq

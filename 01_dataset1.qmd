@@ -1,0 +1,125 @@
+---
+title: "01_dataset1"
+format: html
+editor: visual
+---
+
+# Dataset1
+
+## Differential Gene Expression
+
+### Load libraries
+
+```{r}
+#| message: false 
+library(DESeq2)  
+library(fgsea)  
+library(msigdbr)
+```
+
+## Create colData
+
+```{r}
+colData1 <- meta1_clean 
+colData1$treatment <- factor(
+  colData1$treatment, 
+  levels = c("Vehicle", "E2")
+  ) 
+all(rownames(colData1) == colnames(gene_counts_1))
+```
+
+## DESeq2
+
+### Create DESeqDS object
+
+```{r}
+dds1 <- DESeqDataSetFromMatrix(   
+  countData = gene_counts_1,   
+  colData = colData1,   
+  design = ~ treatment ) 
+dds1
+```
+
+### PCA
+
+```{r}
+plotPCA(rlog(dds1), intgroup=c("treatment"))
+```
+
+### Test for DE
+
+```{r}
+dds1 <- DESeq(dds1) 
+res1 <- results(dds1) 
+res1
+```
+
+```{r}
+des_sig_1 <- rownames(res1)[which(res1$padj < 0.05)]
+```
+
+## GSEA (FSC)
+
+```{r}
+BP_df = msigdbr(species = "human", category = "C5", subcategory = "BP")
+BP_list = split(BP_df$ensembl_gene, BP_df$gs_name)
+```
+
+```{r}
+des_stats_1 <- res1[,"stat"]
+names(des_stats_1) <- sub("\\.\\d+$", "", rownames(res1))
+des_stats_1 <- des_stats_1[!is.na(des_stats_1)]
+des_stats_1 <- sort(des_stats_1, decreasing = TRUE)
+```
+
+```{r}
+fgsea_des_1 <- fgseaMultilevel(
+  pathways = BP_list,
+  stats = des_stats_1,
+  minSize = 15,
+  maxSize = 500,
+  scoreType = "std"
+)
+```
+
+```{r}
+fg_sig_des_1 <- fgsea_des_1 %>%
+arrange(padj) %>%
+filter(padj < 0.05)
+nrow(fg_sig_des_1)
+```
+
+```{r}
+fg_sig_des_1[1:10]
+```
+
+All of these pathways are related to **ribosome biogenesis and RNA metabolism/processing**, including:
+
+-   **rRNA and tRNA metabolism/processing** (`GOBP_RRNA_METABOLIC_PROCESS`, `GOBP_TRNA_METABOLIC_PROCESS`, `GOBP_MATURATION_OF_SSU_RRNA`, `GOBP_TRNA_PROCESSING`)
+
+-   **Ribosomal subunit biogenesis** (`GOBP_RIBOSOMAL_LARGE_SUBUNIT_BIOGENESIS`, `GOBP_RIBOSOMAL_SMALL_SUBUNIT_BIOGENESIS`)
+
+-   **Ribonucleoprotein complex assembly** (`GOBP_RIBONUCLEOPROTEIN_COMPLEX_SUBUNIT_ORGANIZATION`)
+
+-   **ncRNA processing and RNA localization** (`GOBP_NCRNA_PROCESSING`, `GOBP_RNA_LOCALIZATION`)
+
+    The top GSEA hits suggest that the treatment primarily affects **ribosome biogenesis and RNA processing programs**.
+
+### (Opt) leading-edge genes
+
+```{r}
+
+```
+
+## DEXSeq
+
+### Pre-filter
+
+```{r}
+n_samples <- ncol(isoform_counts_1)    
+min_samples <- 3
+isoform_counts_filtered_1 <- isoform_counts_1[
+  rowSums(isoform_counts_1 >= 10) >= min_samples,
+]
+
+```
