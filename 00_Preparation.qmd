@@ -1,5 +1,5 @@
 ---
-title: "00_Group Project"
+title: "00_Preparation"
 format: html
 editor: visual
 ---
@@ -17,6 +17,7 @@ load(file='/home/projects/22140/exam_data/exam_functions.Rdata')
 ## Load libraries
 
 ```{r}
+#| message: false
 library(BiocManager)
 library(GEOquery)
 library(tidyverse)
@@ -98,51 +99,4 @@ meta2_clean <- meta2 %>%
   TRUE ~ treatment
   )
   )
-```
-
-# Dataset1
-
-## Differential Gene Expression
-
-### Load libraries
-
-```{r}
-library(DESeq2) 
-library(fgsea) 
-library(msigdbr)
-```
-
-## Create colData
-
-```{r}
-colData1 <- meta1_clean
-colData1$treatment <- factor(colData1$treatment, levels = c("Vehicle", "E2"))
-all(rownames(colData1) == colnames(gene_counts_1))
-```
-
-## DESeq2
-
-### Create DESeqDS object
-
-```{r}
-dds1 <- DESeqDataSetFromMatrix(
-  countData = gene_counts_1,
-  colData = colData1,
-  design = ~ treatment
-)
-dds1
-```
-
-### PCA
-
-```{r}
-plotPCA(rlog(dds1), intgroup=c("treatment"))
-```
-
-### Test for DE
-
-```{r}
-dds1 <- DESeq(dds1)
-res1 <- results(dds1)
-res1
 ```
