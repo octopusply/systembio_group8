@@ -254,7 +254,9 @@ dexseqResultGene_1 <-
   )
 ```
 
-## ORA
+## Gene level
+
+### ORA
 
 ```{r}
 dex_gene_1 <- dexseqResultGene_1 %>%
@@ -298,4 +300,66 @@ ft_1 <- fisher.test(
   contig_tab_1, 
   alternative = "greater")
 ft_1
+```
+
+## Gene-set level
+
+```{r}
+dex_names_1 <- sub("\\.\\d+$", "", dex_gene_1$gene_id)
+dex_vals_1 <- dex_gene_1$stat
+stats_dex_1 <- setNames(dex_vals_1, dex_names_1)
+stats_dex_1 <- stats_dex_1[!is.na(stats_dex_1)]
+stats_dex_1 <- sort(stats_dex_1, decreasing = TRUE)
+stats_dex_abs <- abs(stats_dex_1)
+
+```
+
+```{r}
+fgsea_dex_1 <- fgseaMultilevel(
+  pathways = BP_list, 
+  stats = stats_dex_1,
+  minSize = 15, 
+  maxSize = 500, 
+  scoreType = "std"
+  )
+```
+
+```{r}
+sig_des_1 <- fgsea_des_1 %>% 
+  filter(padj < alpha) %>% 
+  arrange(padj)
+sig_dex_1 <- fgsea_dex_1 %>%
+  as_tibble() %>%
+  filter(padj < 0.05) %>%
+  arrange(padj)
+
+```
+
+```{r}
+n_sig_des_1 <- nrow(sig_des_1)
+n_sig_dex_1 <- nrow(sig_dex_1)
+# shared pathways (by name)
+shared_1 <- intersect(sig_des_1$pathway, sig_dex_1$pathway)
+length(shared_1)
+```
+
+### Check
+
+```{r}
+library(ggplot2)
+
+genes_in_pathways <- unlist(BP_list)
+mapping_rate <- sum(names(stats_dex_1) %in% genes_in_pathways) / length(stats_dex_1)
+cat("Mapping rate of genes to pathway gene sets:", mapping_rate, "\n")
+
+fgsea_dex_1_df <- as_tibble(fgsea_dex_1)
+
+ggplot(fgsea_dex_1_df, aes(x = pval)) +
+  geom_histogram(bins = 50, fill = "steelblue", color = "black") +
+  ggtitle("DEXSeq FGSEA: p-value distribution")
+
+ggplot(fgsea_dex_1_df, aes(x = padj)) +
+  geom_histogram(bins = 50, fill = "salmon", color = "black") +
+  ggtitle("DEXSeq FGSEA: padj distribution")
+
 ```
