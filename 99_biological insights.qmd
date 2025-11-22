@@ -32,4 +32,4 @@ Among the 12,089 genes shared between the two analyses, the overlap of significa
 
 ### Gene-set level
 
-GSEA results show *no significant pathways* when using DEXSeq gene-level statistics.
+GSEA results show *no significant pathways* when using DEXSeq gene-level statistics. The identified AS events are likely **biologically real** but **functionally dispersed**.
