@@ -6,7 +6,7 @@ editor: visual
 
 # Dataset1
 
-## Differential Gene Expression
+# Differential Gene Expression
 
 ### Load libraries
 
@@ -17,7 +17,7 @@ library(fgsea)
 library(msigdbr)
 ```
 
-## Create colData
+### Create colData
 
 ```{r}
 colData1 <- meta1_clean 
@@ -111,7 +111,17 @@ All of these pathways are related to **ribosome biogenesis and RNA metabolism/pr
 
 ```
 
-## DEXSeq
+### (Opt) non-dir
+
+# Differential Isoform Usage
+
+### Load libraries
+
+```{r}
+#| message: false 
+library(DEXSeq)  
+library(tidyverse)
+```
 
 ### Pre-filter
 
@@ -122,4 +132,24 @@ isoform_counts_filtered_1 <- isoform_counts_1[
   rowSums(isoform_counts_1 >= 10) >= min_samples,
 ]
 
+```
+
+### Gene annotation
+
+```{r}
+
+```
+
+## DEXSeq
+
+### Create object
+
+```{r}
+dxdSubset <- DEXSeqDataSet(
+  countData = isoform_counts_filtered_1,
+  sampleData = meta1_clean,
+  design= ~ sample + exon + treatment:exon,
+  featureID = txInfoSubset$transcript_id,
+  groupID = txInfoSubset$gene_id
+)
 ```
