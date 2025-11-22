@@ -137,7 +137,23 @@ isoform_counts_filtered_1 <- isoform_counts_1[
 ### Gene annotation
 
 ```{r}
+txInfo <- readr::read_rds('/home/projects/22140/exam_data/Homo_sapiens.GRCh38.107.chr_patch_hapl_scaff_tx_info.Rds')
+```
 
+```{r}
+tx2gene <- data.frame(
+  featureID = txInfo$transcript_id,
+  groupID   = txInfo$gene_id
+)
+tx2gene_filtered <- tx2gene[tx2gene$featureID %in% rownames(isoform_counts_filtered_1), ]
+```
+
+```{r}
+featureID_1 <- rownames(isoform_counts_filtered_1)
+groupID_1 <- as.character(tx2gene_filtered$groupID[match(featureID_1, tx2gene_filtered$featureID)])
+
+length(featureID_1)
+length(groupID_1)
 ```
 
 ## DEXSeq
@@ -145,11 +161,62 @@ isoform_counts_filtered_1 <- isoform_counts_1[
 ### Create object
 
 ```{r}
-dxdSubset <- DEXSeqDataSet(
+dxdSubset_1 <- DEXSeqDataSet(
   countData = isoform_counts_filtered_1,
   sampleData = meta1_clean,
   design= ~ sample + exon + treatment:exon,
-  featureID = txInfoSubset$transcript_id,
-  groupID = txInfoSubset$gene_id
+  featureID = featureID_1,
+  groupID = groupID_1
 )
 ```
+
+### Test for DIU
+
+```{r}
+dxdSubset_1 <- estimateSizeFactors(dxdSubset_1)
+```
+
+```{r}
+dxdSubset_1 <- estimateDispersions(dxdSubset_1)
+```
+
+```{r}
+dxdSubset_1 <- testForDEU(
+  dxdSubset_1,
+  fullModel = ~ sample + exon + treatment:exon
+)
+```
+
+```{r}
+dxdSubset_1 <- estimateExonFoldChanges(dxdSubset_1, fitExpToVar = "treatment")
+```
+
+```{r}
+dxdResult_1 <- DEXSeqResults(dxdSubset_1)
+```
+
+```{r}
+alpha <- 0.05
+dex_sig_1 <- dxdResult_1[!is.na(dxdResult_1$padj) & dxdResult_1$padj < alpha, ]
+nrow(dex_sig_1)
+length(unique(dex_sig_1$groupID))
+```
+
+### Top 5 genes
+
+```{r}
+dex_df_1 <- as.data.frame(dxdResult_1)
+dex_df_1 <- dex_df_1[order(dex_df_1$padj), ]
+top5_genes <- dex_df_1$groupID[!is.na(dex_df_1$padj)][1:5]
+top5_genes
+```
+
+\[1\] "ENSG00000008838"
+
+\[2\] "ENSG00000141279"
+
+\[3\] "ENSG00000196876"
+
+\[4\]"ENSG00000198793"
+
+\[5\] "ENSG00000147100"
