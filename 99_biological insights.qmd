@@ -23,3 +23,11 @@ All of these pathways are related to **ribosome biogenesis and RNA metabolism/pr
     The top GSEA hits suggest that the treatment primarily affects **ribosome biogenesis and RNA processing (translation and RNA metabolism) programs**.
 
 ## DEXSeq
+
+## DE v.s DIU
+
+### Gene level
+
+### Gene-set level
+
+Among the 12,089 genes shared between the two analyses, the overlap of significant genes is strongly enriched. Fisher’s exact test yields a p-value \< 2.2e-16 and an odds ratio of 1.65, indicating that genes significant in both DESeq2 and DEXSeq occur far more frequently than expected by chance. Notably, 710 genes are significant in DEXSeq but not in DESeq2, highlighting how isoform-level analysis can reveal regulatory changes in transcript usage that may be missed by gene-level differential expression.

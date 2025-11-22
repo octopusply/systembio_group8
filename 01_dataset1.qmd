@@ -220,3 +220,82 @@ top5_genes
 \[4\]"ENSG00000198793"
 
 \[5\] "ENSG00000147100"
+
+# Compare to DE
+
+```{r}
+dexseqResultGene_1 <-
+  dxdResult_1 %>%
+  as.data.frame() %>%
+  as_tibble() %>%
+  filter(
+    ! is.na(stat)
+    ) %>%
+  # Select and rename columns
+  dplyr::select(
+  gene_id = groupID,
+  isoform_id = featureID,
+  stat,
+  log2FC = log2fold_Vehicle_E2,
+  pvalue,
+  padj
+  ) %>%
+  group_by(gene_id) %>%
+  # For each gene, keep only the single isoform with the smallest p-value
+  slice_min(
+    order_by = pvalue,
+    n = 1,
+    with_ties = FALSE
+    ) %>%
+  ungroup() %>%
+  # Recalculate FDR across genes using those per-gene minimal p-values.
+  mutate(
+    padj = p.adjust(pvalue, method = 'fdr')
+  )
+```
+
+## ORA
+
+```{r}
+dex_gene_1 <- dexseqResultGene_1 %>%
+  mutate(
+    gene_id, 
+    dex_padj = padj,
+    dex_sig = !is.na(padj) & padj < alpha)
+```
+
+```{r}
+des_gene_1 <- as.data.frame(res1) %>%
+  tibble::rownames_to_column("gene_id") %>%
+  dplyr::mutate(
+    des_padj = padj,
+    des_sig = !is.na(padj) & padj < alpha
+  )
+```
+
+```{r}
+univ_1 <- intersect(
+  dex_gene_1$gene_id,
+  des_gene_1$gene_id
+  )
+both_1 <- dex_gene_1 %>%
+  filter(gene_id %in% univ_1) %>%
+  mutate(gene_id, dex_sig) %>%
+  inner_join(des_gene_1 %>%
+               filter(gene_id %in% univ_1) %>%
+               mutate(gene_id, des_sig), by = "gene_id")
+# Contingency table (DEXSeq vs DESeq2 significance)
+contig_tab_1 <- table(
+  DEXSeq = both_1$dex_sig, 
+  DESeq2 = both_1$des_sig)
+contig_tab_1
+```
+
+### Fisher's test
+
+```{r}
+ft_1 <- fisher.test(
+  contig_tab_1, 
+  alternative = "greater")
+ft_1
+```
