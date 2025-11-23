@@ -104,8 +104,11 @@ meta2_clean <- meta2 %>%
 ## Save data
 
 ```{r}
+saveRDS(isoform_counts_1, file = "isoform_counts_1.rds")
 saveRDS(gene_counts_1, file = "gene_counts_1.rds")
 saveRDS(meta1_clean,  file = "meta1_clean.rds")
+saveRDS(isoform_counts_2, file = "isoform_counts_2.rds")
 saveRDS(gene_counts_2, file = "gene_counts_2.rds")
 saveRDS(meta2_clean,  file = "meta2_clean.rds")
+
 ```

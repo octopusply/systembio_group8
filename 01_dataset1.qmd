@@ -8,6 +8,14 @@ editor: visual
 set.seed(37)
 ```
 
+## Load data
+
+```{r}
+gene_counts_1 <- readRDS("gene_counts_1.rds")
+meta1_clean  <- readRDS("meta1_clean.rds")
+isoform_counts_1 <- readRDS("isoform_counts_1.rds")
+```
+
 # Dataset1
 
 # Differential Gene Expression
@@ -16,7 +24,9 @@ set.seed(37)
 
 ```{r}
 #| message: false 
-library(DESeq2)  
+library(tidyverse)
+library(DESeq2) 
+library(DEXSeq) 
 library(fgsea)  
 library(msigdbr)
 ```
@@ -118,14 +128,6 @@ All of these pathways are related to **ribosome biogenesis and RNA metabolism/pr
 ### (Opt) non-dir
 
 # Differential Isoform Usage
-
-### Load libraries
-
-```{r}
-#| message: false 
-library(DEXSeq)  
-library(tidyverse)
-```
 
 ### Pre-filter
 
