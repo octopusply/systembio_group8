@@ -4,6 +4,10 @@ format: html
 editor: visual
 ---
 
+```{r}
+set.seed(37)
+```
+
 # Dataset1
 
 # Differential Gene Expression
@@ -361,5 +365,147 @@ ggplot(fgsea_dex_1_df, aes(x = pval)) +
 ggplot(fgsea_dex_1_df, aes(x = padj)) +
   geom_histogram(bins = 50, fill = "salmon", color = "black") +
   ggtitle("DEXSeq FGSEA: padj distribution")
+
+```
+
+# Combine p-values
+
+```{r}
+
+des_pvals_1 <- data.frame(
+  gene_id = rownames(res1),
+  pvalue_deseq2 = res1$pvalue,
+  stringsAsFactors = FALSE
+)
+
+dex_pvals_1 <- data.frame(
+  gene_id = dex_df_1$groupID,
+  pvalue_dexseq = dex_df_1$pvalue,
+  stringsAsFactors = FALSE
+)
+
+
+joint_pvals_1 <- merge(des_pvals_1, dex_pvals_1, by = "gene_id")
+
+joint_pvals_1 <- joint_pvals_1 %>%
+  rowwise() %>%
+  mutate(
+    joint_pval_fisher =
+      if (is.na(pvalue_deseq2) || is.na(pvalue_dexseq)) NA
+      else metap::sumlog(c(pvalue_deseq2, pvalue_dexseq))$p
+  ) %>%
+  ungroup()
+
+
+```
+
+## Gene level
+
+```{r}
+joint_pvals_1 <- joint_pvals_1 %>%
+  mutate(
+    padj_deseq2 = p.adjust(pvalue_deseq2, method = "BH"),
+    padj_dexseq  = p.adjust(pvalue_dexseq,  method = "BH"),
+    padj_joint   = p.adjust(joint_pval_fisher, method = "BH"),
+
+    sig_deseq2 = padj_deseq2 < alpha,
+    sig_dexseq = padj_dexseq  < alpha,
+    sig_joint  = padj_joint   < alpha
+  )
+```
+
+```{r}
+sig_counts_1 <- c(
+  DESeq2 = sum(joint_pvals_1$sig_deseq2, na.rm = TRUE),
+  DEXSeq = sum(joint_pvals_1$sig_dexseq,  na.rm = TRUE),
+  Joint  = sum(joint_pvals_1$sig_joint,   na.rm = TRUE)
+)
+
+sig_counts_1
+```
+
+```{r}
+unique_joint_1 <- joint_pvals_1 %>% 
+  filter(sig_joint, !sig_deseq2, !sig_dexseq) %>% 
+  nrow()
+unique_joint_1
+```
+
+## Gene-set level
+
+### Creat stats
+
+```{r}
+joint_clean_1 <- joint_pvals_1 %>%
+  arrange(pvalue_deseq2) %>%  
+  distinct(gene_id, .keep_all = TRUE)
+
+```
+
+```{r}
+stats_deseq2_1 <- -log10(joint_clean_1$pvalue_deseq2)
+names(stats_deseq2_1) <- joint_clean_1$gene_id
+
+stats_dexseq_1 <- -log10(joint_clean_1$pvalue_dexseq)
+names(stats_dexseq_1) <- joint_clean_1$gene_id
+
+stats_joint_1  <- -log10(joint_clean_1$joint_pval_fisher)
+names(stats_joint_1) <- joint_clean_1$gene_id
+
+```
+
+```{r}
+fg_deseq2_j_1 <- fgseaMultilevel(
+  pathways = BP_list,
+  stats = sort(stats_deseq2_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+fg_dexseq_j_1 <- fgseaMultilevel(
+  pathways = BP_list,
+  stats = sort(stats_dexseq_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+fg_joint_j_1 <- fgseaMultilevel(
+  pathways = BP_list,
+  stats = sort(stats_joint_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+```
+
+```{r}
+sig_paths <- function(fgsea_res, alpha = 0.05) {
+  fgsea_res %>% 
+    filter(padj < alpha) %>% 
+    pull(pathway) %>% 
+    unique()
+}
+
+sig_sets_deseq2_1 <- sig_paths(fg_deseq2_j_1)
+sig_sets_dexseq_1 <- sig_paths(fg_dexseq_j_1)
+sig_sets_joint_1  <- sig_paths(fg_joint_j_1)
+
+```
+
+```{r}
+sig_counts_1 <- c(
+  DESeq2 = length(sig_sets_deseq2_1),
+  DEXSeq = length(sig_sets_dexseq_1),
+  Joint  = length(sig_sets_joint_1)
+)
+
+sig_counts_1
+
+```
+
+```{r}
+unique_joint_1 <- setdiff(
+  sig_sets_joint_1,
+  union(sig_sets_deseq2_1, sig_sets_dexseq_1)
+)
+
+unique_joint_1
 
 ```
