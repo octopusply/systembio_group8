@@ -511,3 +511,44 @@ unique_joint_1 <- setdiff(
 unique_joint_1
 
 ```
+
+### MF
+
+```{r}
+MF_df <- msigdbr(species = "human", category = "C5", subcategory = "MF")
+MF_list <- split(MF_df$ensembl_gene, MF_df$gs_name)
+
+
+```
+
+```{r}
+
+fg_deseq2_mf_1 <- fgseaMultilevel(
+  pathways = MF_list,
+  stats = sort(stats_deseq2_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+fg_dexseq_mf_1 <- fgseaMultilevel(
+  pathways = MF_list,
+  stats = sort(stats_dexseq_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+fg_joint_mf_1 <- fgseaMultilevel(
+  pathways = MF_list,
+  stats = sort(stats_joint_1, decreasing = TRUE),
+  scoreType = "pos"
+)
+
+```
+
+```{r}
+sig_sets_deseq2_mf_1 <- sig_paths(fg_deseq2_mf_1)
+sig_sets_dexseq_mf_1 <- sig_paths(fg_dexseq_mf_1)
+sig_sets_joint_mf_1 <- sig_paths(fg_joint_mf_1)
+
+c(DESeq2 = length(sig_sets_deseq2_mf_1),
+  DEXSeq = length(sig_sets_dexseq_mf_1),
+  Joint  = length(sig_sets_joint_mf_1))
+```
