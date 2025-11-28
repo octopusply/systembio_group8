@@ -1,5 +1,5 @@
 ---
-title: "01_dataset1"
+title: "02_dataset2"
 format: html
 editor: visual
 ---
@@ -11,12 +11,12 @@ set.seed(37)
 ## Load data
 
 ```{r}
-gene_counts_1 <- readRDS("gene_counts_1.rds")
-meta1_clean  <- readRDS("meta1_clean.rds")
-isoform_counts_1 <- readRDS("isoform_counts_1.rds")
+gene_counts_2 <- readRDS("gene_counts_2.rds")
+meta2_clean  <- readRDS("meta2_clean.rds")
+isoform_counts_2 <- readRDS("isoform_counts_2.rds")
 ```
 
-# Dataset1
+# Dataset2
 
 # Differential Gene Expression
 
@@ -34,12 +34,12 @@ library(msigdbr)
 ### Create colData
 
 ```{r}
-colData1 <- meta1_clean 
-colData1$treatment <- factor(
-  colData1$treatment, 
-  levels = c("Vehicle", "E2")
+colData2 <- meta2_clean 
+colData2$treatment <- factor(
+  colData2$treatment, 
+  levels = c("Vehicle", "NB73")
   ) 
-all(rownames(colData1) == colnames(gene_counts_1))
+all(rownames(colData2) == colnames(gene_counts_2))
 ```
 
 ## DESeq2
@@ -47,29 +47,29 @@ all(rownames(colData1) == colnames(gene_counts_1))
 ### Create DESeqDS object
 
 ```{r}
-dds1 <- DESeqDataSetFromMatrix(   
-  countData = gene_counts_1,   
-  colData = colData1,   
+dds2 <- DESeqDataSetFromMatrix(   
+  countData = gene_counts_2,   
+  colData = colData2,   
   design = ~ treatment ) 
-dds1
+dds2
 ```
 
 ### PCA
 
 ```{r}
-plotPCA(rlog(dds1), intgroup=c("treatment"))
+plotPCA(rlog(dds2), intgroup=c("treatment"))
 ```
 
 ### Test for DE
 
 ```{r}
-dds1 <- DESeq(dds1) 
-res1 <- results(dds1) 
-res1
+dds2 <- DESeq(dds2) 
+res2 <- results(dds2) 
+res2
 ```
 
 ```{r}
-des_sig_1 <- rownames(res1)[which(res1$padj < 0.05)]
+des_sig_2 <- rownames(res2)[which(res2$padj < 0.05)]
 ```
 
 ## GSEA (FSC)
@@ -80,16 +80,16 @@ BP_list = split(BP_df$ensembl_gene, BP_df$gs_name)
 ```
 
 ```{r}
-des_stats_1 <- res1[,"stat"]
-names(des_stats_1) <- sub("\\.\\d+$", "", rownames(res1))
-des_stats_1 <- des_stats_1[!is.na(des_stats_1)]
-des_stats_1 <- sort(des_stats_1, decreasing = TRUE)
+des_stats_2 <- res2[,"stat"]
+names(des_stats_2) <- sub("\\.\\d+$", "", rownames(res2))
+des_stats_2 <- des_stats_2[!is.na(des_stats_2)]
+des_stats_2 <- sort(des_stats_2, decreasing = TRUE)
 ```
 
 ```{r}
-fgsea_des_1 <- fgseaMultilevel(
+fgsea_des_2 <- fgseaMultilevel(
   pathways = BP_list,
-  stats = des_stats_1,
+  stats = des_stats_2,
   minSize = 15,
   maxSize = 500,
   scoreType = "std"
@@ -97,14 +97,14 @@ fgsea_des_1 <- fgseaMultilevel(
 ```
 
 ```{r}
-fg_sig_des_1 <- fgsea_des_1 %>%
+fg_sig_des_2 <- fgsea_des_2 %>%
 arrange(padj) %>%
 filter(padj < 0.05)
-nrow(fg_sig_des_1)
+nrow(fg_sig_des_2)
 ```
 
 ```{r}
-fg_sig_des_1[1:10]
+fg_sig_des_2[1:10]
 ```
 
 All of these pathways are related to **ribosome biogenesis and RNA metabolism/processing**, including:
@@ -132,10 +132,10 @@ All of these pathways are related to **ribosome biogenesis and RNA metabolism/pr
 ### Pre-filter
 
 ```{r}
-n_samples <- ncol(isoform_counts_1)    
+n_samples <- ncol(isoform_counts_2)    
 min_samples <- 3
-isoform_counts_filtered_1 <- isoform_counts_1[
-  rowSums(isoform_counts_1 >= 10) >= min_samples,
+isoform_counts_filtered_2 <- isoform_counts_2[
+  rowSums(isoform_counts_2 >= 10) >= min_samples,
 ]
 
 ```
@@ -151,15 +151,15 @@ tx2gene <- data.frame(
   featureID = txInfo$transcript_id,
   groupID   = txInfo$gene_id
 )
-tx2gene_filtered <- tx2gene[tx2gene$featureID %in% rownames(isoform_counts_filtered_1), ]
+tx2gene_filtered <- tx2gene[tx2gene$featureID %in% rownames(isoform_counts_filtered_2), ]
 ```
 
 ```{r}
-featureID_1 <- rownames(isoform_counts_filtered_1)
-groupID_1 <- as.character(tx2gene_filtered$groupID[match(featureID_1, tx2gene_filtered$featureID)])
+featureID_2 <- rownames(isoform_counts_filtered_2)
+groupID_2 <- as.character(tx2gene_filtered$groupID[match(featureID_2, tx2gene_filtered$featureID)])
 
-length(featureID_1)
-length(groupID_1)
+length(featureID_2)
+length(groupID_2)
 ```
 
 ## DEXSeq
@@ -167,53 +167,53 @@ length(groupID_1)
 ### Create object
 
 ```{r}
-dxdSubset_1 <- DEXSeqDataSet(
-  countData = isoform_counts_filtered_1,
-  sampleData = meta1_clean,
+dxdSubset_2 <- DEXSeqDataSet(
+  countData = isoform_counts_filtered_2,
+  sampleData = meta2_clean,
   design= ~ sample + exon + treatment:exon,
-  featureID = featureID_1,
-  groupID = groupID_1
+  featureID = featureID_2,
+  groupID = groupID_2
 )
 ```
 
 ### Test for DIU
 
 ```{r}
-dxdSubset_1 <- estimateSizeFactors(dxdSubset_1)
+dxdSubset_2 <- estimateSizeFactors(dxdSubset_2)
 ```
 
 ```{r}
-dxdSubset_1 <- estimateDispersions(dxdSubset_1)
+dxdSubset_2 <- estimateDispersions(dxdSubset_2)
 ```
 
 ```{r}
-dxdSubset_1 <- testForDEU(
-  dxdSubset_1,
+dxdSubset_2 <- testForDEU(
+  dxdSubset_2,
   fullModel = ~ sample + exon + treatment:exon
 )
 ```
 
 ```{r}
-dxdSubset_1 <- estimateExonFoldChanges(dxdSubset_1, fitExpToVar = "treatment")
+dxdSubset_2 <- estimateExonFoldChanges(dxdSubset_2, fitExpToVar = "treatment")
 ```
 
 ```{r}
-dxdResult_1 <- DEXSeqResults(dxdSubset_1)
+dxdResult_2 <- DEXSeqResults(dxdSubset_2)
 ```
 
 ```{r}
 alpha <- 0.05
-dex_sig_1 <- dxdResult_1[!is.na(dxdResult_1$padj) & dxdResult_1$padj < alpha, ]
-nrow(dex_sig_1)
-length(unique(dex_sig_1$groupID))
+dex_sig_2 <- dxdResult_2[!is.na(dxdResult_2$padj) & dxdResult_2$padj < alpha, ]
+nrow(dex_sig_2)
+length(unique(dex_sig_2$groupID))
 ```
 
 ### Top 5 genes
 
 ```{r}
-dex_df_1 <- as.data.frame(dxdResult_1)
-dex_df_1 <- dex_df_1[order(dex_df_1$padj), ]
-top5_genes <- dex_df_1$groupID[!is.na(dex_df_1$padj)][1:5]
+dex_df_2 <- as.data.frame(dxdResult_2)
+dex_df_2 <- dex_df_2[order(dex_df_2$padj), ]
+top5_genes <- dex_df_2$groupID[!is.na(dex_df_2$padj)][1:5]
 top5_genes
 ```
 
@@ -230,8 +230,8 @@ top5_genes
 # Compare to DE
 
 ```{r}
-dexseqResultGene_1 <-
-  dxdResult_1 %>%
+dexseqResultGene_2 <-
+  dxdResult_2 %>%
   as.data.frame() %>%
   as_tibble() %>%
   filter(
@@ -242,7 +242,7 @@ dexseqResultGene_1 <-
   gene_id = groupID,
   isoform_id = featureID,
   stat,
-  log2FC = log2fold_Vehicle_E2,
+  log2FC = log2fold_Vehicle_NB73,
   pvalue,
   padj
   ) %>%
@@ -265,7 +265,7 @@ dexseqResultGene_1 <-
 ### ORA
 
 ```{r}
-dex_gene_1 <- dexseqResultGene_1 %>%
+dex_gene_2 <- dexseqResultGene_2 %>%
   mutate(
     gene_id, 
     dex_padj = padj,
@@ -273,7 +273,7 @@ dex_gene_1 <- dexseqResultGene_1 %>%
 ```
 
 ```{r}
-des_gene_1 <- as.data.frame(res1) %>%
+des_gene_2 <- as.data.frame(res2) %>%
   tibble::rownames_to_column("gene_id") %>%
   dplyr::mutate(
     des_padj = padj,
@@ -282,48 +282,48 @@ des_gene_1 <- as.data.frame(res1) %>%
 ```
 
 ```{r}
-univ_1 <- intersect(
-  dex_gene_1$gene_id,
-  des_gene_1$gene_id
+univ_2 <- intersect(
+  dex_gene_2$gene_id,
+  des_gene_2$gene_id
   )
-both_1 <- dex_gene_1 %>%
-  filter(gene_id %in% univ_1) %>%
+both_2 <- dex_gene_2 %>%
+  filter(gene_id %in% univ_2) %>%
   mutate(gene_id, dex_sig) %>%
-  inner_join(des_gene_1 %>%
-               filter(gene_id %in% univ_1) %>%
+  inner_join(des_gene_2 %>%
+               filter(gene_id %in% univ_2) %>%
                mutate(gene_id, des_sig), by = "gene_id")
 # Contingency table (DEXSeq vs DESeq2 significance)
-contig_tab_1 <- table(
-  DEXSeq = both_1$dex_sig, 
-  DESeq2 = both_1$des_sig)
-contig_tab_1
+contig_tab_2 <- table(
+  DEXSeq = both_2$dex_sig, 
+  DESeq2 = both_2$des_sig)
+contig_tab_2
 ```
 
 ### Fisher's test
 
 ```{r}
-ft_1 <- fisher.test(
-  contig_tab_1, 
+ft_2 <- fisher.test(
+  contig_tab_2, 
   alternative = "greater")
-ft_1
+ft_2
 ```
 
 ## Gene-set level
 
 ```{r}
-dex_names_1 <- sub("\\.\\d+$", "", dex_gene_1$gene_id)
-dex_vals_1 <- dex_gene_1$stat
-stats_dex_1 <- setNames(dex_vals_1, dex_names_1)
-stats_dex_1 <- stats_dex_1[!is.na(stats_dex_1)]
-stats_dex_1 <- sort(stats_dex_1, decreasing = TRUE)
-stats_dex_abs <- abs(stats_dex_1)
+dex_names_2 <- sub("\\.\\d+$", "", dex_gene_2$gene_id)
+dex_vals_2 <- dex_gene_2$stat
+stats_dex_2 <- setNames(dex_vals_2, dex_names_2)
+stats_dex_2 <- stats_dex_2[!is.na(stats_dex_2)]
+stats_dex_2 <- sort(stats_dex_2, decreasing = TRUE)
+stats_dex_abs <- abs(stats_dex_2)
 
 ```
 
 ```{r}
-fgsea_dex_1 <- fgseaMultilevel(
+fgsea_dex_2 <- fgseaMultilevel(
   pathways = BP_list, 
-  stats = stats_dex_1,
+  stats = stats_dex_2,
   minSize = 15, 
   maxSize = 500, 
   scoreType = "std"
@@ -331,10 +331,10 @@ fgsea_dex_1 <- fgseaMultilevel(
 ```
 
 ```{r}
-sig_des_1 <- fgsea_des_1 %>% 
+sig_des_2 <- fgsea_des_2 %>% 
   filter(padj < alpha) %>% 
   arrange(padj)
-sig_dex_1 <- fgsea_dex_1 %>%
+sig_dex_2 <- fgsea_dex_2 %>%
   as_tibble() %>%
   filter(padj < 0.05) %>%
   arrange(padj)
@@ -342,11 +342,11 @@ sig_dex_1 <- fgsea_dex_1 %>%
 ```
 
 ```{r}
-n_sig_des_1 <- nrow(sig_des_1)
-n_sig_dex_1 <- nrow(sig_dex_1)
+n_sig_des_2 <- nrow(sig_des_2)
+n_sig_dex_2 <- nrow(sig_dex_2)
 # shared pathways (by name)
-shared_1 <- intersect(sig_des_1$pathway, sig_dex_1$pathway)
-length(shared_1)
+shared_2 <- intersect(sig_des_2$pathway, sig_dex_2$pathway)
+length(shared_2)
 ```
 
 ### Check
@@ -355,16 +355,16 @@ length(shared_1)
 library(ggplot2)
 
 genes_in_pathways <- unlist(BP_list)
-mapping_rate <- sum(names(stats_dex_1) %in% genes_in_pathways) / length(stats_dex_1)
+mapping_rate <- sum(names(stats_dex_2) %in% genes_in_pathways) / length(stats_dex_2)
 cat("Mapping rate of genes to pathway gene sets:", mapping_rate, "\n")
 
-fgsea_dex_1_df <- as_tibble(fgsea_dex_1)
+fgsea_dex_2_df <- as_tibble(fgsea_dex_2)
 
-ggplot(fgsea_dex_1_df, aes(x = pval)) +
+ggplot(fgsea_dex_2_df, aes(x = pval)) +
   geom_histogram(bins = 50, fill = "steelblue", color = "black") +
   ggtitle("DEXSeq FGSEA: p-value distribution")
 
-ggplot(fgsea_dex_1_df, aes(x = padj)) +
+ggplot(fgsea_dex_2_df, aes(x = padj)) +
   geom_histogram(bins = 50, fill = "salmon", color = "black") +
   ggtitle("DEXSeq FGSEA: padj distribution")
 
@@ -374,22 +374,22 @@ ggplot(fgsea_dex_1_df, aes(x = padj)) +
 
 ```{r}
 
-des_pvals_1 <- data.frame(
-  gene_id = rownames(res1),
-  pvalue_deseq2 = res1$pvalue,
+des_pvals_2 <- data.frame(
+  gene_id = rownames(res2),
+  pvalue_deseq2 = res2$pvalue,
   stringsAsFactors = FALSE
 )
 
-dex_pvals_1 <- data.frame(
-  gene_id = dex_df_1$groupID,
-  pvalue_dexseq = dex_df_1$pvalue,
+dex_pvals_2 <- data.frame(
+  gene_id = dex_df_2$groupID,
+  pvalue_dexseq = dex_df_2$pvalue,
   stringsAsFactors = FALSE
 )
 
 
-joint_pvals_1 <- merge(des_pvals_1, dex_pvals_1, by = "gene_id")
+joint_pvals_2 <- merge(des_pvals_2, dex_pvals_2, by = "gene_id")
 
-joint_pvals_1 <- joint_pvals_1 %>%
+joint_pvals_2 <- joint_pvals_2 %>%
   rowwise() %>%
   mutate(
     joint_pval_fisher =
@@ -404,7 +404,7 @@ joint_pvals_1 <- joint_pvals_1 %>%
 ## Gene level
 
 ```{r}
-joint_pvals_1 <- joint_pvals_1 %>%
+joint_pvals_2 <- joint_pvals_2 %>%
   mutate(
     padj_deseq2 = p.adjust(pvalue_deseq2, method = "BH"),
     padj_dexseq  = p.adjust(pvalue_dexseq,  method = "BH"),
@@ -417,20 +417,20 @@ joint_pvals_1 <- joint_pvals_1 %>%
 ```
 
 ```{r}
-sig_counts_1 <- c(
-  DESeq2 = sum(joint_pvals_1$sig_deseq2, na.rm = TRUE),
-  DEXSeq = sum(joint_pvals_1$sig_dexseq,  na.rm = TRUE),
-  Joint  = sum(joint_pvals_1$sig_joint,   na.rm = TRUE)
+sig_counts_2 <- c(
+  DESeq2 = sum(joint_pvals_2$sig_deseq2, na.rm = TRUE),
+  DEXSeq = sum(joint_pvals_2$sig_dexseq,  na.rm = TRUE),
+  Joint  = sum(joint_pvals_2$sig_joint,   na.rm = TRUE)
 )
 
-sig_counts_1
+sig_counts_2
 ```
 
 ```{r}
-unique_joint_1 <- joint_pvals_1 %>% 
+unique_joint_2 <- joint_pvals_2 %>% 
   filter(sig_joint, !sig_deseq2, !sig_dexseq) %>% 
   nrow()
-unique_joint_1
+unique_joint_2
 ```
 
 ## Gene-set level
@@ -438,40 +438,43 @@ unique_joint_1
 ### Creat stats
 
 ```{r}
-joint_clean_1 <- joint_pvals_1 %>%
+joint_clean_2 <- joint_pvals_2 %>%
   arrange(pvalue_deseq2) %>%  
   distinct(gene_id, .keep_all = TRUE)
 
-```
-
-```{r}
-stats_deseq2_1 <- -log10(joint_clean_1$pvalue_deseq2)
-names(stats_deseq2_1) <- joint_clean_1$gene_id
-
-stats_dexseq_1 <- -log10(joint_clean_1$pvalue_dexseq)
-names(stats_dexseq_1) <- joint_clean_1$gene_id
-
-stats_joint_1  <- -log10(joint_clean_1$joint_pval_fisher)
-names(stats_joint_1) <- joint_clean_1$gene_id
+                      
 
 ```
 
 ```{r}
-fg_deseq2_j_1 <- fgseaMultilevel(
+stats_deseq2_2 <- -log10(joint_clean_2$pvalue_deseq2)
+names(stats_deseq2_2) <- joint_clean_2$gene_id
+stats_deseq2_2 <- stats_deseq2_2[is.finite(stats_deseq2_2)]
+
+stats_dexseq_2 <- -log10(joint_clean_2$pvalue_dexseq)
+names(stats_dexseq_2) <- joint_clean_2$gene_id
+
+stats_joint_2  <- -log10(joint_clean_2$joint_pval_fisher)
+names(stats_joint_2) <- joint_clean_2$gene_id
+stats_joint_2 <- stats_joint_2[is.finite(stats_joint_2)]
+```
+
+```{r}
+fg_deseq2_j_2 <- fgseaMultilevel(
   pathways = BP_list,
-  stats = sort(stats_deseq2_1, decreasing = TRUE),
+  stats = sort(stats_deseq2_2, decreasing = TRUE),
   scoreType = "pos"
 )
 
-fg_dexseq_j_1 <- fgseaMultilevel(
+fg_dexseq_j_2 <- fgseaMultilevel(
   pathways = BP_list,
-  stats = sort(stats_dexseq_1, decreasing = TRUE),
+  stats = sort(stats_dexseq_2, decreasing = TRUE),
   scoreType = "pos"
 )
 
-fg_joint_j_1 <- fgseaMultilevel(
+fg_joint_j_2 <- fgseaMultilevel(
   pathways = BP_list,
-  stats = sort(stats_joint_1, decreasing = TRUE),
+  stats = sort(stats_joint_2, decreasing = TRUE),
   scoreType = "pos"
 )
 
@@ -485,30 +488,30 @@ sig_paths <- function(fgsea_res, alpha = 0.05) {
     unique()
 }
 
-sig_sets_deseq2_1 <- sig_paths(fg_deseq2_j_1)
-sig_sets_dexseq_1 <- sig_paths(fg_dexseq_j_1)
-sig_sets_joint_1  <- sig_paths(fg_joint_j_1)
+sig_sets_deseq2_2 <- sig_paths(fg_deseq2_j_2)
+sig_sets_dexseq_2 <- sig_paths(fg_dexseq_j_2)
+sig_sets_joint_2  <- sig_paths(fg_joint_j_2)
 
 ```
 
 ```{r}
-sig_counts_1 <- c(
-  DESeq2 = length(sig_sets_deseq2_1),
-  DEXSeq = length(sig_sets_dexseq_1),
-  Joint  = length(sig_sets_joint_1)
+sig_counts_2 <- c(
+  DESeq2 = length(sig_sets_deseq2_2),
+  DEXSeq = length(sig_sets_dexseq_2),
+  Joint  = length(sig_sets_joint_2)
 )
 
-sig_counts_1
+sig_counts_2
 
 ```
 
 ```{r}
-unique_joint_1 <- setdiff(
-  sig_sets_joint_1,
-  union(sig_sets_deseq2_1, sig_sets_dexseq_1)
+unique_joint_2 <- setdiff(
+  sig_sets_joint_2,
+  union(sig_sets_deseq2_2, sig_sets_dexseq_2)
 )
 
-unique_joint_1
+unique_joint_2
 
 ```
 
@@ -518,37 +521,34 @@ unique_joint_1
 MF_df <- msigdbr(species = "human", category = "C5", subcategory = "MF")
 MF_list <- split(MF_df$ensembl_gene, MF_df$gs_name)
 
-
 ```
 
 ```{r}
-
-fg_deseq2_mf_1 <- fgseaMultilevel(
+fg_deseq2_mf_2 <- fgseaMultilevel(
   pathways = MF_list,
-  stats = sort(stats_deseq2_1, decreasing = TRUE),
+  stats = sort(stats_deseq2_2, decreasing = TRUE),
   scoreType = "pos"
 )
 
-fg_dexseq_mf_1 <- fgseaMultilevel(
+fg_dexseq_mf_2 <- fgseaMultilevel(
   pathways = MF_list,
-  stats = sort(stats_dexseq_1, decreasing = TRUE),
+  stats = sort(stats_dexseq_2, decreasing = TRUE),
   scoreType = "pos"
 )
 
-fg_joint_mf_1 <- fgseaMultilevel(
+fg_joint_mf_2 <- fgseaMultilevel(
   pathways = MF_list,
-  stats = sort(stats_joint_1, decreasing = TRUE),
+  stats = sort(stats_joint_2, decreasing = TRUE),
   scoreType = "pos"
 )
-
 ```
 
 ```{r}
-sig_sets_deseq2_mf_1 <- sig_paths(fg_deseq2_mf_1)
-sig_sets_dexseq_mf_1 <- sig_paths(fg_dexseq_mf_1)
-sig_sets_joint_mf_1 <- sig_paths(fg_joint_mf_1)
+sig_sets_deseq2_mf_2 <- sig_paths(fg_deseq2_mf_2)
+sig_sets_dexseq_mf_2 <- sig_paths(fg_dexseq_mf_2)
+sig_sets_joint_mf_2 <- sig_paths(fg_joint_mf_2)
 
-c(DESeq2 = length(sig_sets_deseq2_mf_1),
-  DEXSeq = length(sig_sets_dexseq_mf_1),
-  Joint  = length(sig_sets_joint_mf_1))
+c(DESeq2 = length(sig_sets_deseq2_mf_2),
+  DEXSeq = length(sig_sets_dexseq_mf_2),
+  Joint  = length(sig_sets_joint_mf_2))
 ```
